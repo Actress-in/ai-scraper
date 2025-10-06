@@ -215,7 +215,7 @@ with tab2:
                         response = requests.post(
                             f"{BACKEND_URL}/api/generate",
                             json=payload,
-                            timeout=60
+                            timeout=180  # 3分に延長
                         )
 
                         if response.status_code == 200:
