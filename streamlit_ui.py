@@ -6,6 +6,7 @@ AI Scraper Builder - Streamlit UI
 import streamlit as st
 import requests
 import json
+import os
 from datetime import datetime
 
 # ページ設定
@@ -15,8 +16,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# バックエンドURL
-BACKEND_URL = "http://localhost:3001"
+# バックエンドURL（環境変数から取得、デフォルトはlocalhost）
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:3001")
 
 # セッション状態の初期化
 if 'analysis_result' not in st.session_state:

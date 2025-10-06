@@ -1,254 +1,306 @@
 # 🤖 AI Scraper Builder
 
-**アンチボット対策完全装備**のWebスクレイパー自動生成ツール
+AIを活用した、アンチボット対策完全装備のWebスクレイパー自動生成ツール
 
-Google Gemini AIとPlaywrightを組み合わせ、自然言語で指定するだけで完全なスクレイパーコードを生成・実行できます。
+## ✨ 特徴
 
-## ✨ 主な機能
+- 🧠 **AI自動解析**: Google Gemini 2.5 Flashを使用してページ構造を自動分析
+- 🛡️ **完全なアンチボット対策**:
+  - ランダムな遅延と人間らしい動作シミュレーション
+  - User-Agentローテーションとヘッダー管理
+  - WebDriver検出回避（ステルススクリプト）
+  - マウス移動とスクロールのシミュレーション
+  - 指数関数的バックオフによるリトライロジック
+- 📸 **ビジュアルデバッグ**: スクリーンショット自動キャプチャ
+- 🔄 **ページネーション自動検出**: URLパターン、ボタン、リンクを自動認識
+- 💻 **実行可能コード生成**: すぐに使えるPlaywrightスクレイパーを生成
+- 🎨 **直感的UI**: Streamlitによる4ステップワークフロー
 
-### 🎯 コア機能
-- **AIページ解析**: URLを入力するだけで取得可能なデータ要素を自動提案
-- **自動コード生成**: 選択した要素から完全なPlaywrightコードを生成
-- **ワンクリック実行**: 生成したスクレイパーをその場で実行
-- **結果の可視化**: 取得データをテーブル・JSON・CSVで表示
+## 🏗️ アーキテクチャ
 
-### 🛡️ アンチボット対策（完全実装済み）
+```
+┌─────────────────┐
+│  Streamlit UI   │  (Python - フロントエンド)
+│  Port: 8502     │
+└────────┬────────┘
+         │ HTTP
+         ↓
+┌─────────────────┐
+│  Express API    │  (Node.js - バックエンド)
+│  Port: 3001     │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ↓         ↓
+┌────────┐ ┌────────┐
+│Gemini  │ │Playwright│
+│2.5 Flash│ │Browser  │
+└────────┘ └────────┘
+```
 
-#### 1. リクエストの人間らしさ
-- ランダムな待機時間（設定可能）
-- 時間帯による挙動調整（深夜・週末など）
-- Exponential backoff リトライ
+## 📦 必要なもの
 
-#### 2. ヘッダー管理
-- User-Agentローテーション（実在するブラウザ）
-- 適切なAccept/Language/Encoding設定
-- 自然なReferer設定
+### Backend (Node.js)
+- Node.js 16+
+- npm
 
-#### 3. プロキシ対応
-- プロキシローテーション
-- 失敗したプロキシの自動除外
-- レート制限の検知と対応
+### Frontend (Python)
+- Python 3.8+
+- pip
 
-#### 4. エラーハンドリング
-- HTTPステータスコード別の処理
-  - 429: Exponential backoff
-  - 403/401: プロキシ・ヘッダーローテーション
-  - 5xx: リトライロジック
-
-#### 5. ブラウザステルス機能
-- `navigator.webdriver` 削除
-- Canvas fingerprinting対策
-- 人間らしいマウス移動・スクロール
-- Chrome実行環境の偽装
-
-#### 6. 並行制御
-- 並行リクエスト数の制限
-- 段階的スケールアップ
-- 訪問済みURLの重複回避
+### API
+- Google Gemini API Key ([取得方法](https://ai.google.dev/))
 
 ## 🚀 セットアップ
 
-### 1. 環境準備
+### 1. リポジトリのクローン
 
 ```bash
-cd ai-scraper-builder
-
-# Node.js依存関係のインストール
-cd backend
-npm install
-cd ..
-
-# Python依存関係のインストール
-pip install -r requirements.txt
-
-# Playwright ブラウザのインストール
-npx playwright install chromium
+git clone https://github.com/Actress-in/ai-scraper.git
+cd ai-scraper
 ```
 
-### 2. API設定
+### 2. 環境変数の設定
 
-`.env`ファイルを作成:
+`.env.example`をコピーして`.env`を作成:
 
 ```bash
 cp .env.example .env
 ```
 
-`.env`を編集してGemini APIキーを設定:
+`.env`ファイルを編集してAPIキーを設定:
 
 ```env
-GEMINI_API_KEY=your_api_key_here
-
-# オプション: プロキシ設定
-# PROXY_LIST=http://proxy1:8080,http://proxy2:8080
+GEMINI_API_KEY=your_gemini_api_key_here
+DEFAULT_TIMEOUT=60000
+PORT=3001
 ```
 
-**APIキー取得**: https://aistudio.google.com/app/apikey
-
-### 3. サーバー起動
+### 3. Backend (Node.js) のセットアップ
 
 ```bash
-# ターミナル1: バックエンド
 cd backend
-npm start
-
-# ターミナル2: フロントエンド
-streamlit run streamlit_ui.py
+npm install
+npx playwright install chromium
 ```
 
-### 4. アクセス
+### 4. Frontend (Python) のセットアップ
 
-- **Streamlit UI**: http://localhost:8501
-- **バックエンドAPI**: http://localhost:3000
+```bash
+cd ..  # プロジェクトルートに戻る
+pip install -r requirements.txt
+```
+
+## 💻 ローカルでの実行
+
+### ターミナル1: Backendサーバー起動
+
+```bash
+cd backend
+PORT=3001 npm start
+```
+
+### ターミナル2: Streamlit起動
+
+```bash
+streamlit run streamlit_ui.py --server.port 8502
+```
+
+### アクセス
+
+- **Streamlit UI**: http://localhost:8502
+- **Backend API**: http://localhost:3001
+
+## ☁️ デプロイ
+
+### オプション1: バックエンドとフロントエンドを別々にデプロイ（推奨）
+
+#### Backendのデプロイ (Render/Railway/Heroku)
+
+1. **Render.com** の場合:
+   - 新しいWeb Serviceを作成
+   - リポジトリ: `https://github.com/Actress-in/ai-scraper`
+   - Root Directory: `backend`
+   - Build Command: `npm install && npx playwright install chromium`
+   - Start Command: `npm start`
+   - 環境変数を設定:
+     - `GEMINI_API_KEY`: あなたのAPIキー
+     - `PORT`: 3001 (Renderが自動設定)
+
+2. デプロイ後のURL（例: `https://your-backend.onrender.com`）をメモ
+
+#### Frontendのデプロイ (Streamlit Cloud)
+
+1. **Streamlit Cloud**にアクセス: https://share.streamlit.io/
+2. GitHubリポジトリを接続
+3. Main file: `streamlit_ui.py`
+4. **Advanced settings**で環境変数を設定:
+   ```
+   BACKEND_URL=https://your-backend.onrender.com
+   ```
+5. デプロイ
+
+### オプション2: Docker Composeで一括デプロイ
+
+```bash
+docker-compose up -d
+```
 
 ## 📖 使い方
 
-### 基本的な流れ
+### ステップ1: ページ解析
+1. 対象URLを入力
+2. 「🔍 解析開始」をクリック
+3. AIがページを分析してデータ要素を提案
 
-1. **ページ解析**
-   - 対象URLを入力
-   - AIが自動でページを解析
-   - 取得可能なデータ要素を提案
+### ステップ2: コード生成
+1. 取得したいデータ要素を選択
+2. オプション設定（ページネーション、ログインなど）
+3. 「🚀 コード生成」をクリック
 
-2. **コード生成**
-   - 取得したいデータを選択
-   - オプション設定（ページネーション、ログインなど）
-   - AIが最適なスクレイパーコードを生成
+### ステップ3: 実行
+1. 出力形式を選択（JSON/CSV）
+2. 「▶️ 実行開始」をクリック
 
-3. **実行**
-   - ワンクリックで実行
-   - アンチボット対策が自動で適用される
+### ステップ4: 結果確認
+1. 取得データをテーブル表示
+2. CSV/JSONでダウンロード可能
 
-4. **結果確認**
-   - テーブル形式で結果表示
-   - CSV/JSONでダウンロード可能
+## 🛠️ API エンドポイント
 
-### 高度な使い方
+### GET `/api/health`
+ヘルスチェック
 
-#### プロキシ設定
+### POST `/api/analyze`
+ページ解析
 
-`.env`ファイルでプロキシリストを設定:
-
-```env
-PROXY_LIST=http://proxy1:8080,http://proxy2:8080,http://proxy3:8080
-```
-
-#### 設定のカスタマイズ
-
-`backend/src/config/antibot.config.js`で詳細設定:
-
-```javascript
-timing: {
-  minDelay: 1000,  // 最小待機時間（ミリ秒）
-  maxDelay: 5000   // 最大待機時間（ミリ秒）
+**Request:**
+```json
+{
+  "url": "https://example.com"
 }
 ```
 
-## 🏗️ プロジェクト構成
+### POST `/api/generate`
+スクレイパーコード生成
+
+**Request:**
+```json
+{
+  "url": "https://example.com",
+  "targets": [...],
+  "pagination": false,
+  "loginRequired": false,
+  "outputFormat": "json"
+}
+```
+
+### POST `/api/execute`
+スクレイパー実行
+
+**Request:**
+```json
+{
+  "url": "https://example.com",
+  "targets": [...],
+  "saveOutput": true,
+  "outputFormat": "json"
+}
+```
+
+### GET `/api/config`
+アンチボット設定取得
+
+### GET `/api/stats`
+統計情報取得
+
+## 🔧 設定
+
+### アンチボット設定 (`backend/src/config/antibot.config.js`)
+
+```javascript
+module.exports = {
+  timing: {
+    minDelay: 1000,        // 最小待機時間（ミリ秒）
+    maxDelay: 5000,        // 最大待機時間（ミリ秒）
+    pageLoadDelay: {
+      min: 2000,
+      max: 5000
+    }
+  },
+  browser: {
+    headless: true,        // ヘッドレスモード
+    stealthScripts: [...]  // ステルススクリプト
+  },
+  // その他の設定...
+}
+```
+
+## 📁 プロジェクト構造
 
 ```
-ai-scraper-builder/
+ai-scraper/
 ├── backend/
 │   ├── src/
-│   │   ├── server.js                    # Express サーバー
 │   │   ├── config/
-│   │   │   └── antibot.config.js       # アンチボット設定
-│   │   └── services/
-│   │       ├── AntiBotService.js       # アンチボット対策
-│   │       ├── PageAnalyzer.js         # ページ解析
-│   │       ├── CodeGenerator.js        # コード生成
-│   │       └── ScraperExecutor.js      # 実行エンジン
-│   └── package.json
-│
+│   │   │   └── antibot.config.js    # アンチボット設定
+│   │   ├── services/
+│   │   │   ├── AntiBotService.js    # アンチボット機能
+│   │   │   ├── PageAnalyzer.js      # ページ解析
+│   │   │   ├── CodeGenerator.js     # コード生成
+│   │   │   └── ScraperExecutor.js   # スクレイパー実行
+│   │   └── server.js                # Express API
+│   ├── package.json
+│   └── package-lock.json
 ├── data/
-│   └── outputs/                        # 生成コード・結果
-│
-├── logs/                               # ログファイル
-├── streamlit_ui.py                     # Streamlit UI
-├── requirements.txt                    # Python依存関係
+│   └── outputs/                     # 生成されたスクレイパーと結果
+├── streamlit_ui.py                  # Streamlit UI
+├── requirements.txt                 # Python依存関係
+├── .env.example                     # 環境変数テンプレート
 └── README.md
 ```
 
-## 🔧 技術スタック
+## 🔒 セキュリティ
 
-- **バックエンド**: Node.js + Express
-- **スクレイピング**: Playwright (ヘッドレスChrome)
-- **AI**: Google Gemini 2.0 Flash
-- **フロントエンド**: Streamlit (Python)
-- **ログ**: Winston
+- `.env`ファイルは**絶対にコミットしないでください**
+- APIキーは環境変数で管理
+- プロダクション環境では適切なレート制限を設定
 
-## 📚 API エンドポイント
+## 🐛 トラブルシューティング
 
-| エンドポイント | メソッド | 説明 |
-|-------------|---------|------|
-| `/api/analyze` | POST | ページ解析 |
-| `/api/test-selector` | POST | セレクターテスト |
-| `/api/generate` | POST | スクレイパーコード生成 |
-| `/api/execute` | POST | スクレイパー実行 |
-| `/api/stats` | GET | 統計情報取得 |
-| `/api/config` | GET | 設定情報取得 |
-| `/api/health` | GET | ヘルスチェック |
-
-## 🔍 使用例
-
-### Example 1: ECサイトの商品情報
-
-```
-URL: https://example-shop.com/products
-取得データ:
-- 商品名
-- 価格
-- 画像URL
-- 在庫状況
+### Chromiumが見つからない
+```bash
+cd backend
+npx playwright install chromium
 ```
 
-### Example 2: ニュースサイトの記事一覧
-
-```
-URL: https://news-site.com/articles
-取得データ:
-- 記事タイトル
-- 公開日時
-- 著者
-- カテゴリー
-オプション: ページネーション有効
+### ポート競合エラー
+別のポートを指定:
+```bash
+PORT=3002 npm start
 ```
 
-## ⚠️ 注意事項
+### タイムアウトエラー
+`.env`でタイムアウトを増やす:
+```env
+DEFAULT_TIMEOUT=120000
+```
 
-### 法的遵守
-- 対象サイトの利用規約を必ず確認してください
-- `robots.txt`を尊重してください
-- 過度な負荷をかけないでください
+## 📝 ライセンス
 
-### 防御的クローリング
-このツールは**防御的なクローリング**のみを目的としています:
-- 公開情報の収集
-- 研究・開発目的
-- 個人利用
+MIT License
 
-以下の用途には使用しないでください:
-- 不正アクセス
-- DDoS攻撃
-- 個人情報の不正取得
+## 🤝 コントリビューション
 
-## 💰 料金
+Pull Requestsを歓迎します！
 
-### Gemini 2.0 Flash
-- **無料枠**: 1日1,500回まで無料
-- **有料時**: 1回あたり約0.01円
+## 🙏 謝辞
 
-無料枠内であれば完全無料で利用可能！
+- [Playwright](https://playwright.dev/) - ブラウザ自動化
+- [Google Gemini](https://ai.google.dev/) - AI分析
+- [Streamlit](https://streamlit.io/) - UI フレームワーク
+- [Express.js](https://expressjs.com/) - バックエンドAPI
 
-## 🤝 貢献
+---
 
-Issue・PRを歓迎します！
-
-## 📄 ライセンス
-
-ISC
-
-## 🙏 クレジット
-
-- **AI**: Google Gemini
-- **ブラウザ自動化**: Playwright
-- **UI**: Streamlit
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
