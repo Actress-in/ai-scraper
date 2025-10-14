@@ -536,7 +536,8 @@ async function processAutoScrape(jobId, url, spreadsheetId, rowNumber) {
         status: '完了',
         dataCount,
         screenshotUrl,
-        dataUrl: executionResult.outputFile || ''
+        dataUrl: executionResult.outputFile || '',
+        scraperId: executionResult.scraperId
       });
 
       await sheetIntegration.updateRowColor(spreadsheetId, rowNumber, 'green');
@@ -554,7 +555,8 @@ async function processAutoScrape(jobId, url, spreadsheetId, rowNumber) {
           status: 'エラー',
           dataCount: 0,
           screenshotUrl: '',
-          dataUrl: `Error: ${error.message}`
+          dataUrl: `Error: ${error.message}`,
+          scraperId: jobId
         });
         await sheetIntegration.updateRowColor(spreadsheetId, rowNumber, 'red');
       } catch (writeError) {

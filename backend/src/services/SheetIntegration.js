@@ -92,19 +92,26 @@ class SheetIntegration {
     }
 
     try {
+      // 列番号の定義
+      // H列（8）: ターゲットURL
+      // R列（18）: ステータス
+      // V列（22）: 結果
+      // W列（23）: ID
+
       const updates = [
         {
-          range: `管理台帳!F${rowNumber}`, // ステータス列
+          range: `管理台帳!R${rowNumber}`, // R列: ステータス
           values: [[result.status || '完了']]
         },
         {
-          range: `管理台帳!I${rowNumber}:L${rowNumber}`, // 結果列
+          range: `管理台帳!V${rowNumber}`, // V列: 結果（データ件数など）
           values: [[
-            result.dataCount || 0,
-            result.screenshotUrl || '',
-            result.dataUrl || '',
-            new Date().toLocaleString('ja-JP')
+            `取得: ${result.dataCount || 0}件 | スクショ: ${result.screenshotUrl ? 'あり' : 'なし'} | データURL: ${result.dataUrl || 'なし'} | 完了: ${new Date().toLocaleString('ja-JP')}`
           ]]
+        },
+        {
+          range: `管理台帳!W${rowNumber}`, // W列: ID (Scraper ID)
+          values: [[result.scraperId || '']]
         }
       ];
 
