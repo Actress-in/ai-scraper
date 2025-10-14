@@ -420,7 +420,7 @@ app.post('/api/webhook/sheet', async (req, res) => {
 });
 
 /**
- * 完全自動パイプライン実行
+ * 完全自動パイプライン実行（非同期）
  * POST /api/auto-scrape
  * Body: {
  *   url: string,
@@ -439,9 +439,43 @@ app.post('/api/auto-scrape', async (req, res) => {
       });
     }
 
-    antiBotService.logger.info(`Auto-scraping started for: ${url}`);
+    // ジョブIDを生成
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    antiBotService.logger.info(`Auto-scraping job ${jobId} queued for: ${url}`);
+
+    // 即座にレスポンスを返す
+    res.json({
+      success: true,
+      message: 'Processing started',
+      jobId,
+      status: 'processing'
+    });
+
+    // バックグラウンドで処理を実行
+    processAutoScrape(jobId, url, spreadsheetId, rowNumber)
+      .catch(error => {
+        antiBotService.logger.error(`Job ${jobId} failed: ${error.message}`);
+      });
+
+  } catch (error) {
+    antiBotService.logger.error(`Auto-scrape request failed: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * バックグラウンド処理: 完全自動スクレイピングパイプライン
+ */
+async function processAutoScrape(jobId, url, spreadsheetId, rowNumber) {
+  try {
+    antiBotService.logger.info(`[${jobId}] Starting auto-scrape for: ${url}`);
 
     // ステップ1: ページ解析
+    antiBotService.logger.info(`[${jobId}] Step 1: Analyzing page...`);
     const analysisResult = await pageAnalyzer.analyzePage(url);
 
     if (!analysisResult.success) {
@@ -449,6 +483,7 @@ app.post('/api/auto-scrape', async (req, res) => {
     }
 
     // ステップ2: コード生成
+    antiBotService.logger.info(`[${jobId}] Step 2: Generating code...`);
     const codeGenParams = {
       url,
       targets: analysisResult.suggestions || [],
@@ -465,6 +500,7 @@ app.post('/api/auto-scrape', async (req, res) => {
     }
 
     // ステップ3: スクレイパー実行
+    antiBotService.logger.info(`[${jobId}] Step 3: Executing scraper...`);
     const executionParams = {
       code: generatedCode.code,
       url,
@@ -480,6 +516,7 @@ app.post('/api/auto-scrape', async (req, res) => {
     }
 
     // ステップ4: スクリーンショット保存
+    antiBotService.logger.info(`[${jobId}] Step 4: Saving screenshot...`);
     const screenshot = analysisResult.screenshot;
     let screenshotUrl = '';
 
@@ -491,6 +528,7 @@ app.post('/api/auto-scrape', async (req, res) => {
 
     // ステップ5: スプレッドシートに結果を書き込む
     if (spreadsheetId && rowNumber) {
+      antiBotService.logger.info(`[${jobId}] Step 5: Writing results to spreadsheet...`);
       const data = executionResult.data?.data || {};
       const dataCount = Object.values(data).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -504,46 +542,27 @@ app.post('/api/auto-scrape', async (req, res) => {
       await sheetIntegration.updateRowColor(spreadsheetId, rowNumber, 'green');
     }
 
-    // 最終結果を返す
-    res.json({
-      success: true,
-      scraperId: executionResult.scraperId,
-      analysis: {
-        statusCode: analysisResult.statusCode,
-        elementsFound: analysisResult.suggestions?.length || 0
-      },
-      execution: {
-        dataCount: Object.values(executionResult.data?.data || {}).reduce((sum, arr) => sum + arr.length, 0),
-        outputFile: executionResult.outputFile
-      },
-      screenshot: screenshotUrl,
-      timestamp: new Date().toISOString()
-    });
+    antiBotService.logger.info(`[${jobId}] ✅ Auto-scrape completed successfully!`);
 
   } catch (error) {
-    antiBotService.logger.error(`Auto-scrape failed: ${error.message}`);
+    antiBotService.logger.error(`[${jobId}] ❌ Auto-scrape failed: ${error.message}`);
 
     // エラーをスプレッドシートに記録
-    if (req.body.spreadsheetId && req.body.rowNumber) {
+    if (spreadsheetId && rowNumber) {
       try {
-        await sheetIntegration.writeResult(req.body.spreadsheetId, req.body.rowNumber, {
+        await sheetIntegration.writeResult(spreadsheetId, rowNumber, {
           status: 'エラー',
           dataCount: 0,
           screenshotUrl: '',
           dataUrl: `Error: ${error.message}`
         });
-        await sheetIntegration.updateRowColor(req.body.spreadsheetId, req.body.rowNumber, 'red');
+        await sheetIntegration.updateRowColor(spreadsheetId, rowNumber, 'red');
       } catch (writeError) {
-        antiBotService.logger.error(`Failed to write error to sheet: ${writeError.message}`);
+        antiBotService.logger.error(`[${jobId}] Failed to write error to sheet: ${writeError.message}`);
       }
     }
-
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
   }
-});
+}
 
 /**
  * Webhook処理用の内部関数
