@@ -13,6 +13,7 @@ class ScraperExecutor {
   constructor() {
     this.runningScrapers = new Map(); // 実行中のスクレイパー管理
     this.results = new Map(); // 実行結果キャッシュ
+    this.codes = new Map(); // 生成されたコードのキャッシュ
   }
 
   /**
@@ -278,6 +279,10 @@ class ScraperExecutor {
     await fs.mkdir(outputDir, { recursive: true });
 
     await fs.writeFile(filePath, code, 'utf-8');
+
+    // メモリにもコードを保存
+    this.codes.set(scraperId, code);
+
     antiBotService.logger.info(`Code saved to ${filePath}`);
 
     return filePath;
@@ -367,6 +372,15 @@ class ScraperExecutor {
   }
 
   /**
+   * 生成されたコードを取得
+   * @param {string} scraperId
+   * @returns {string|null}
+   */
+  getCode(scraperId) {
+    return this.codes.get(scraperId) || null;
+  }
+
+  /**
    * 統計情報を取得
    * @returns {object}
    */
@@ -374,6 +388,7 @@ class ScraperExecutor {
     return {
       runningScrapers: this.runningScrapers.size,
       cachedResults: this.results.size,
+      cachedCodes: this.codes.size,
       ...antiBotService.getStats()
     };
   }

@@ -277,6 +277,37 @@ app.get('/api/result/:scraperId', (req, res) => {
 });
 
 /**
+ * 生成されたコード取得
+ * GET /api/code/:scraperId
+ */
+app.get('/api/code/:scraperId', (req, res) => {
+  try {
+    const { scraperId } = req.params;
+
+    const code = scraperExecutor.getCode(scraperId);
+
+    if (!code) {
+      return res.status(404).json({
+        success: false,
+        error: 'Code not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      code,
+      scraperId
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 統計情報取得
  * GET /api/stats
  */
