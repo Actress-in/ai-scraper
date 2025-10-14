@@ -271,7 +271,11 @@ class ScraperExecutor {
    */
   async saveCode(scraperId, code) {
     const fileName = `scraper_${scraperId}.js`;
-    const filePath = path.join(__dirname, '../../../data/outputs', fileName);
+    const outputDir = path.join(__dirname, '../../../data/outputs');
+    const filePath = path.join(outputDir, fileName);
+
+    // ディレクトリが存在しない場合は作成
+    await fs.mkdir(outputDir, { recursive: true });
 
     await fs.writeFile(filePath, code, 'utf-8');
     antiBotService.logger.info(`Code saved to ${filePath}`);
@@ -287,7 +291,11 @@ class ScraperExecutor {
    */
   async saveResult(scraperId, result, format = 'json') {
     const fileName = `result_${scraperId}.${format}`;
-    const filePath = path.join(__dirname, '../../../data/outputs', fileName);
+    const outputDir = path.join(__dirname, '../../../data/outputs');
+    const filePath = path.join(outputDir, fileName);
+
+    // ディレクトリが存在しない場合は作成
+    await fs.mkdir(outputDir, { recursive: true });
 
     if (format === 'json') {
       await fs.writeFile(filePath, JSON.stringify(result, null, 2), 'utf-8');
