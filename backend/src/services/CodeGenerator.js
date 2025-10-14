@@ -33,7 +33,9 @@ class CodeGenerator {
         ? this.buildPythonPrompt(url, targets, pagination, loginRequired, outputFormat)
         : this.buildPrompt(url, targets, pagination, loginRequired, outputFormat);
 
-      const result = await this.model.generateContent(prompt);
+      // タイムアウト付きでGemini APIを呼び出し（180秒）
+      const timeout = parseInt(process.env.GEMINI_TIMEOUT) || 180000;
+      const result = await this.callGeminiWithTimeout(prompt, timeout);
       const generatedCode = this.extractCode(result.response.text(), language);
 
       return {
@@ -49,6 +51,21 @@ class CodeGenerator {
       antiBotService.logger.error(`Code generation failed: ${error.message}`);
       throw error;
     }
+  }
+
+  /**
+   * タイムアウト付きでGemini APIを呼び出し
+   * @param {string} prompt
+   * @param {number} timeout
+   * @returns {Promise}
+   */
+  async callGeminiWithTimeout(prompt, timeout) {
+    return Promise.race([
+      this.model.generateContent(prompt),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Gemini API timeout after ${timeout}ms`)), timeout)
+      )
+    ]);
   }
 
   /**
@@ -413,7 +430,8 @@ JavaScriptコードのみを返してください。
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const timeout = parseInt(process.env.GEMINI_TIMEOUT) || 180000;
+      const result = await this.callGeminiWithTimeout(prompt, timeout);
       return this.extractCode(result.response.text());
     } catch (error) {
       antiBotService.logger.error(`Pagination code generation failed: ${error.message}`);
@@ -448,7 +466,8 @@ JavaScriptコードのみを返してください。
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      const timeout = parseInt(process.env.GEMINI_TIMEOUT) || 180000;
+      const result = await this.callGeminiWithTimeout(prompt, timeout);
       return this.extractCode(result.response.text());
     } catch (error) {
       antiBotService.logger.error(`Login code generation failed: ${error.message}`);
