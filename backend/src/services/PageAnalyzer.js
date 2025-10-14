@@ -46,11 +46,21 @@ class PageAnalyzer {
         headless: chromium.headless
       });
     } else {
-      // ローカル環境
-      this.browser = await chromium.launch({
+      // ローカル環境（Docker/ECS含む）
+      const launchOptions = {
         headless: config.browser.headless,
         ...config.browser.launchOptions
-      });
+      };
+
+      // システムChromiumを使用（Docker/ECS環境対応）
+      const systemChromiumPath = '/usr/bin/chromium';
+      const fs = require('fs');
+      if (fs.existsSync(systemChromiumPath)) {
+        launchOptions.executablePath = systemChromiumPath;
+        antiBotService.logger.info(`Using system Chromium at ${systemChromiumPath}`);
+      }
+
+      this.browser = await chromium.launch(launchOptions);
     }
 
     this.context = await this.browser.newContext({

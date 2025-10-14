@@ -88,10 +88,20 @@ class ScraperExecutor {
       }
 
       // ブラウザ起動
-      browser = await chromium.launch({
+      const launchOptions = {
         headless: config.browser.headless,
         ...config.browser.launchOptions
-      });
+      };
+
+      // システムChromiumを使用（Docker/ECS環境対応）
+      const systemChromiumPath = '/usr/bin/chromium';
+      const fs = require('fs');
+      if (fs.existsSync(systemChromiumPath)) {
+        launchOptions.executablePath = systemChromiumPath;
+        antiBotService.logger.info(`Using system Chromium at ${systemChromiumPath}`);
+      }
+
+      browser = await chromium.launch(launchOptions);
 
       const context = await browser.newContext({
         ...config.browser.contextOptions,

@@ -1,0 +1,51 @@
+{
+  "family": "ai-scraper-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::141918826762:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "ai-scraper-backend",
+      "image": "141918826762.dkr.ecr.ap-northeast-1.amazonaws.com/ai-scraper-backend:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "DEFAULT_TIMEOUT",
+          "value": "180000"
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "value": "AIzaSyAjXuFJ2u1-RopI4zRj-ki1_PNLJqRe52o"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/ai-scraper-backend",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "essential": true
+    }
+  ]
+}
