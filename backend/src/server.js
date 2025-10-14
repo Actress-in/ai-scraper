@@ -29,6 +29,27 @@ app.use((req, res, next) => {
 // ===== API Endpoints =====
 
 /**
+ * ルートパス
+ */
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    service: 'AI Scraper Builder API',
+    version: '1.0.0',
+    status: 'Running',
+    endpoints: {
+      health: '/api/health',
+      analyze: 'POST /api/analyze',
+      generate: 'POST /api/generate',
+      execute: 'POST /api/execute',
+      autoScrape: 'POST /api/auto-scrape',
+      webhook: 'POST /api/webhook/sheet'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
  * ヘルスチェック
  */
 app.get('/api/health', (req, res) => {
