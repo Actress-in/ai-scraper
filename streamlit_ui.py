@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # バックエンドURL（環境変数から取得、デフォルトはlocalhost）
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:3001")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:3000")
 
 # セッション状態の初期化
 if 'analysis_result' not in st.session_state:
@@ -183,6 +183,19 @@ with tab2:
         st.divider()
 
         # 追加オプション
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            language = st.selectbox("言語", ["javascript", "python"], index=0,
+                                   help="生成するコードの言語を選択")
+
+        with col2:
+            output_format = st.selectbox("出力形式", ["json", "csv"], index=0)
+
+        with col3:
+            st.write("")  # スペース
+
+        st.divider()
+
         col1, col2 = st.columns(2)
         with col1:
             pagination = st.checkbox("ページネーション対応", value=False)
@@ -194,8 +207,6 @@ with tab2:
             login_required = st.checkbox("ログイン必要", value=False)
             if login_required:
                 st.info("ログイン情報は環境変数 USERNAME, PASSWORD から取得されます")
-
-        output_format = st.selectbox("出力形式", ["json", "csv"], index=0)
 
         # コード生成
         if st.button("🚀 コード生成", type="primary"):
@@ -209,7 +220,8 @@ with tab2:
                             "targets": selected_targets,
                             "pagination": pagination,
                             "loginRequired": login_required,
-                            "outputFormat": output_format
+                            "outputFormat": output_format,
+                            "language": language
                         }
 
                         response = requests.post(
@@ -233,14 +245,18 @@ with tab2:
             st.subheader("📝 生成されたコード")
 
             code = st.session_state.generated_code['code']
-            st.code(code, language='javascript', line_numbers=True)
+            lang = st.session_state.generated_code['language']
+            file_ext = 'py' if lang == 'python' else 'js'
+            mime_type = 'text/x-python' if lang == 'python' else 'text/javascript'
+
+            st.code(code, language=lang, line_numbers=True)
 
             # ダウンロードボタン
             st.download_button(
                 label="💾 コードをダウンロード",
                 data=code,
-                file_name=f"scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.js",
-                mime="text/javascript"
+                file_name=f"scraper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}",
+                mime=mime_type
             )
 
 # ===== Tab 3: 実行 =====

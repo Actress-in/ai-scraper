@@ -1,0 +1,145 @@
+{
+  "/Users/ryuga.uchiyama/workspace/ai-scraper-builder/backend/serverless.yml": {
+    "versionFramework": "4.21.0",
+    "servicePath": "/Users/ryuga.uchiyama/workspace/ai-scraper-builder/backend/serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "ai-scraper-backend",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs18.x",
+        "stage": "prod",
+        "region": "ap-northeast-1",
+        "timeout": 900,
+        "memorySize": 3008,
+        "environment": {
+          "GEMINI_API_KEY": "<REDACTED>",
+          "DEFAULT_TIMEOUT": 180000,
+          "NODE_ENV": "production",
+          "AWS_LAMBDA_FUNCTION_NAME": "${self:service}-${self:provider.stage}-api"
+        },
+        "iam": {
+          "role": {
+            "statements": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:PutObject",
+                  "s3:GetObject"
+                ],
+                "Resource": "arn:aws:s3:::ai-scraper-screenshots/*"
+              }
+            ]
+          }
+        }
+      },
+      "functions": {
+        "api": {
+          "handler": "src/lambda.handler",
+          "events": [
+            {
+              "http": {
+                "path": "/{proxy+}",
+                "method": "ANY",
+                "cors": true
+              }
+            },
+            {
+              "http": {
+                "path": "/",
+                "method": "ANY",
+                "cors": true
+              }
+            }
+          ],
+          "layers": null
+        }
+      },
+      "package": {
+        "individually": false,
+        "patterns": [
+          "src/**",
+          "node_modules/**",
+          "!node_modules/playwright/.local-browsers/**",
+          "!node_modules/playwright/browsers.json",
+          "!.git/**",
+          "!tests/**",
+          "!*.md",
+          "!.env*",
+          "!google-apps-script/**",
+          "!deployment/**"
+        ]
+      },
+      "plugins": [
+        "serverless-offline"
+      ],
+      "custom": {
+        "serverless-offline": {
+          "httpPort": 3000
+        }
+      }
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "stage": "prod",
+      "region": "ap-northeast-1",
+      "timeout": 900,
+      "memorySize": 3008,
+      "environment": {
+        "GEMINI_API_KEY": "<REDACTED>",
+        "DEFAULT_TIMEOUT": 180000,
+        "NODE_ENV": "production",
+        "AWS_LAMBDA_FUNCTION_NAME": "${self:service}-${self:provider.stage}-api"
+      },
+      "iam": {
+        "role": {
+          "statements": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:PutObject",
+                "s3:GetObject"
+              ],
+              "Resource": "arn:aws:s3:::ai-scraper-screenshots/*"
+            }
+          ]
+        }
+      }
+    },
+    "error": {
+      "message": "You must sign in or use a license key with Serverless Framework V.4 and later versions. Please use \"serverless login\".",
+      "stack": "Error: You must sign in or use a license key with Serverless Framework V.4 and later versions. Please use \"serverless login\".\n    at Authentication.getAuthenticatedData (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:708:10911)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Authentication.authenticate (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:710:22530)\n    at async TraditionalRunner.resolveVariablesAndAuthenticate (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:715:1458)\n    at async TraditionalRunner.run (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:1334:27914)\n    at async route (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:1509:2878)\n    at async Object.run (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:1510:3755)\n    at async run2 (file:///Users/ryuga.uchiyama/.serverless/releases/4.21.0/package/dist/sf-core.js:1510:4909)"
+    },
+    "serviceRawFile": "service: ai-scraper-backend\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  stage: ${opt:stage, 'prod'}\n  region: ap-northeast-1  # 東京リージョン\n  timeout: 900  # 15分（Lambdaの最大値）\n  memorySize: 3008  # Chromium用に大きめのメモリ（最大値）\n\n  environment:\n    GEMINI_API_KEY: ${env:GEMINI_API_KEY}\n    DEFAULT_TIMEOUT: 180000\n    NODE_ENV: production\n    AWS_LAMBDA_FUNCTION_NAME: ${self:service}-${self:provider.stage}-api\n\n  # IAMロール設定\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - logs:CreateLogGroup\n            - logs:CreateLogStream\n            - logs:PutLogEvents\n          Resource: \"*\"\n        - Effect: Allow\n          Action:\n            - s3:PutObject\n            - s3:GetObject\n          Resource: \"arn:aws:s3:::ai-scraper-screenshots/*\"\n\nfunctions:\n  api:\n    handler: src/lambda.handler\n    events:\n      # すべてのHTTPリクエストを受け付ける\n      - http:\n          path: /{proxy+}\n          method: ANY\n          cors: true\n      - http:\n          path: /\n          method: ANY\n          cors: true\n\n    # Lambda Layer設定（Chromiumは大きいので最適化が必要）\n    layers:\n      # 公開されているChromium Layerを使用（オプション）\n      # - arn:aws:lambda:ap-northeast-1:764866452798:layer:chrome-aws-lambda:31\n\n# パッケージング設定\npackage:\n  individually: false\n  patterns:\n    # 含めるファイル\n    - src/**\n    - node_modules/**\n    # 除外するファイル（サイズ削減）\n    - '!node_modules/playwright/.local-browsers/**'\n    - '!node_modules/playwright/browsers.json'\n    - '!.git/**'\n    - '!tests/**'\n    - '!*.md'\n    - '!.env*'\n    - '!google-apps-script/**'\n    - '!deployment/**'\n\n# プラグイン\nplugins:\n  - serverless-offline  # ローカルテスト用（オプション）\n\ncustom:\n  # ローカルテスト設定\n  serverless-offline:\n    httpPort: 3000\n",
+    "command": [
+      "deploy"
+    ],
+    "options": {
+      "verbose": true
+    },
+    "serviceProviderAwsCfStackId": null,
+    "serviceProviderAwsCfStackCreated": null,
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": null,
+    "serviceProviderAwsCfStackOutputs": null
+  }
+}

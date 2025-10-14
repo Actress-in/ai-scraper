@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI Scraper Builder Backend
+
+Globals:
+  Function:
+    Timeout: 900  # 15分（Lambdaの最大値）
+    MemorySize: 3008  # Chromium用に大きめのメモリ
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        GEMINI_API_KEY: !Ref GeminiApiKey
+        DEFAULT_TIMEOUT: '180000'
+        NODE_ENV: production
+
+Parameters:
+  GeminiApiKey:
+    Type: String
+    Description: Google Gemini API Key
+    NoEcho: true
+    Default: 'dummy_key_update_later'
+
+Resources:
+  AiScraperFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-scraper-backend-api
+      CodeUri: ./
+      Handler: src/lambda.handler
+      Events:
+        RootApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+        ProxyApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      Policies:
+        - CloudWatchLogsFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: 'arn:aws:s3:::ai-scraper-screenshots/*'
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt AiScraperFunction.Arn

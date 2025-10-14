@@ -3,7 +3,21 @@
  * PlaywrightとAIを使ってWebページを解析し、取得可能なデータ要素を提案
  */
 
-const { chromium } = require('playwright');
+// Lambda環境判定
+const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.AWS_EXECUTION_ENV;
+
+let chromium, playwright;
+if (isLambda) {
+  // Lambda環境: 軽量版Chromiumを使用
+  chromium = require('@sparticuz/chromium');
+  playwright = require('playwright-core');
+} else {
+  // ローカル環境: 通常のPlaywright
+  const pw = require('playwright');
+  chromium = pw.chromium;
+  playwright = pw;
+}
+
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const antiBotService = require('./AntiBotService');
 const config = require('../config/antibot.config');
@@ -24,10 +38,20 @@ class PageAnalyzer {
 
     antiBotService.logger.info('Launching browser...');
 
-    this.browser = await chromium.launch({
-      headless: config.browser.headless,
-      ...config.browser.launchOptions
-    });
+    if (isLambda) {
+      // Lambda環境
+      this.browser = await playwright.chromium.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless
+      });
+    } else {
+      // ローカル環境
+      this.browser = await chromium.launch({
+        headless: config.browser.headless,
+        ...config.browser.launchOptions
+      });
+    }
 
     this.context = await this.browser.newContext({
       ...config.browser.contextOptions,

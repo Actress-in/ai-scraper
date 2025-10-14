@@ -113,21 +113,60 @@ streamlit run streamlit_ui.py --server.port 8502
 
 ## ☁️ デプロイ
 
-### オプション1: バックエンドとフロントエンドを別々にデプロイ（推奨）
+### クイックデプロイ (3つのオプション)
 
-#### Backendのデプロイ (Render/Railway/Heroku)
+#### オプションA: AWS Lambda (推奨・コスト最安)
+月間100万リクエスト無料、自動スケーリング
+```bash
+cd backend
+npm install -g serverless
+serverless deploy
+```
+**詳細**: [AWS_DEPLOYMENT.md](./deployment/AWS_DEPLOYMENT.md)
 
-1. **Render.com** の場合:
-   - 新しいWeb Serviceを作成
-   - リポジトリ: `https://github.com/Actress-in/ai-scraper`
+#### オプションB: Render.com (最も簡単)
+無料枠あり、GitHubと連携
+1. [Render.com](https://render.com/)でWeb Service作成
+2. リポジトリ接続
+3. Root Directory: `backend`
+4. Build: `npm install && npx playwright install chromium`
+5. Start: `npm start`
+
+#### オプションC: AWS ECS Fargate (本番推奨)
+安定性高い、長時間処理対応
+```bash
+docker build -t ai-scraper-backend .
+# ECRにプッシュ → ECSでサービス作成
+```
+**詳細**: [AWS_DEPLOYMENT.md](./deployment/AWS_DEPLOYMENT.md)
+
+### 🎯 どれを選ぶ?
+
+| サービス | コスト | 特徴 | おすすめ用途 |
+|---------|-------|------|-------------|
+| **AWS Lambda** | 無料〜$5/月 | サーバーレス、自動スケール | 本番・コスト重視 |
+| **Render** | 無料〜$7/月 | 最も簡単、すぐデプロイ | 検証・小規模 |
+| **AWS ECS** | $15〜30/月 | 安定、長時間処理 | 本番・大規模 |
+| **AWS EC2** | 無料〜$8/月 | SSH可、フル制御 | 開発・カスタマイズ |
+
+---
+
+### Backend デプロイ詳細
+
+#### Render.com の場合
+
+1. **Render.com** にサインアップ
+2. 新しいWeb Serviceを作成
+3. リポジトリ: `https://github.com/your-repo/ai-scraper-builder`
+4. 設定:
    - Root Directory: `backend`
    - Build Command: `npm install && npx playwright install chromium`
    - Start Command: `npm start`
-   - 環境変数を設定:
+   - 環境変数:
      - `GEMINI_API_KEY`: あなたのAPIキー
-     - `PORT`: 3001 (Renderが自動設定)
+     - `PORT`: 3000
 
-2. デプロイ後のURL（例: `https://your-backend.onrender.com`）をメモ
+5. デプロイ後のURL（例: `https://your-backend.onrender.com`）をメモ
 
 #### Frontendのデプロイ (Streamlit Cloud)
 

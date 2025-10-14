@@ -1,0 +1,76 @@
+service: ai-scraper-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'prod'}
+  region: ap-northeast-1  # 東京リージョン
+  timeout: 900  # 15分（Lambdaの最大値）
+  memorySize: 3008  # Chromium用に大きめのメモリ（最大値）
+
+  environment:
+    GEMINI_API_KEY: ${env:GEMINI_API_KEY}
+    DEFAULT_TIMEOUT: 180000
+    NODE_ENV: production
+    AWS_LAMBDA_FUNCTION_NAME: ${self:service}-${self:provider.stage}-api
+
+  # IAMロール設定
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource: "arn:aws:s3:::ai-scraper-screenshots/*"
+
+functions:
+  api:
+    handler: src/lambda.handler
+    events:
+      # すべてのHTTPリクエストを受け付ける
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /
+          method: ANY
+          cors: true
+
+    # Lambda Layer設定（Chromiumは大きいので最適化が必要）
+    layers:
+      # 公開されているChromium Layerを使用（オプション）
+      # - arn:aws:lambda:ap-northeast-1:764866452798:layer:chrome-aws-lambda:31
+
+# パッケージング設定
+package:
+  individually: false
+  patterns:
+    # 含めるファイル
+    - src/**
+    - node_modules/**
+    # 除外するファイル（サイズ削減）
+    - '!node_modules/playwright/.local-browsers/**'
+    - '!node_modules/playwright/browsers.json'
+    - '!.git/**'
+    - '!tests/**'
+    - '!*.md'
+    - '!.env*'
+    - '!google-apps-script/**'
+    - '!deployment/**'
+
+# プラグイン
+plugins:
+  - serverless-offline  # ローカルテスト用（オプション）
+
+custom:
+  # ローカルテスト設定
+  serverless-offline:
+    httpPort: 3000

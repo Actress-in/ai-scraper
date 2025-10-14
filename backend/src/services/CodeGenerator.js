@@ -24,19 +24,23 @@ class CodeGenerator {
       targets = [], // 取得したいデータ要素の配列
       pagination = false,
       loginRequired = false,
-      outputFormat = 'json' // json, csv
+      outputFormat = 'json', // json, csv
+      language = 'javascript' // javascript, python
     } = params;
 
     try {
-      const prompt = this.buildPrompt(url, targets, pagination, loginRequired, outputFormat);
+      const prompt = language === 'python'
+        ? this.buildPythonPrompt(url, targets, pagination, loginRequired, outputFormat)
+        : this.buildPrompt(url, targets, pagination, loginRequired, outputFormat);
+
       const result = await this.model.generateContent(prompt);
-      const generatedCode = this.extractCode(result.response.text());
+      const generatedCode = this.extractCode(result.response.text(), language);
 
       return {
         success: true,
         code: generatedCode,
-        language: 'javascript',
-        framework: 'playwright',
+        language: language,
+        framework: language === 'python' ? 'playwright-python' : 'playwright',
         targets,
         timestamp: new Date().toISOString()
       };
@@ -155,13 +159,125 @@ JavaScriptコードのみを返してください。説明文やマークダウ�
   }
 
   /**
-   * AI応答からコードを抽出
-   * @param {string} text
+   * Python用プロンプトを構築
+   * @param {string} url
+   * @param {array} targets
+   * @param {boolean} pagination
+   * @param {boolean} loginRequired
+   * @param {string} outputFormat
    * @returns {string}
    */
-  extractCode(text) {
+  buildPythonPrompt(url, targets, pagination, loginRequired, outputFormat) {
+    const targetsDescription = targets.map(t =>
+      `- ${t.label}: セレクター="${t.selector}", タイプ=${t.dataType}`
+    ).join('\n');
+
+    return `
+あなたはPlaywright for Pythonを使ったWebスクレイピングの専門家です。
+以下の要件に基づいて、アンチボット対策を完全に組み込んだスクレイパーコードを生成してください。
+
+## 対象URL
+${url}
+
+## 取得するデータ要素
+${targetsDescription}
+
+## 追加要件
+- ページネーション: ${pagination ? '有効' : '無効'}
+- ログイン: ${loginRequired ? '必要' : '不要'}
+- 出力形式: ${outputFormat}
+
+## 必須実装事項（アンチボット対策）
+
+### 1. リクエストの人間らしさ
+\`\`\`python
+import random
+import asyncio
+
+async def random_delay(min_ms=${config.timing.minDelay}, max_ms=${config.timing.maxDelay}):
+    """ランダムな待機時間"""
+    delay = random.randint(min_ms, max_ms) / 1000.0
+    await asyncio.sleep(delay)
+\`\`\`
+
+### 2. ステルスブラウザ設定
+\`\`\`python
+from playwright.async_api import async_playwright
+
+browser = await playwright.chromium.launch(
+    headless=${config.browser.headless},
+    args=${JSON.stringify(config.browser.launchOptions.args)}
+)
+
+context = await browser.new_context(
+    viewport={'width': 1920, 'height': 1080},
+    locale='ja-JP',
+    timezone_id='Asia/Tokyo',
+    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+)
+\`\`\`
+
+### 3. Webdriver検知回避
+\`\`\`python
+await page.add_init_script("""
+    Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+    });
+    window.chrome = { runtime: {} };
+""")
+\`\`\`
+
+### 4. 人間らしい動作
+\`\`\`python
+# マウス移動
+await page.mouse.move(random.randint(0, 1000), random.randint(0, 800), steps=10)
+
+# スクロール
+await page.evaluate(f"window.scrollBy(0, {random.randint(300, 800)})")
+\`\`\`
+
+### 5. エラーハンドリング
+\`\`\`python
+max_retries = ${config.errorHandling.maxRetries}
+for attempt in range(max_retries):
+    try:
+        # スクレイピング処理
+        break
+    except Exception as e:
+        if attempt == max_retries - 1:
+            raise
+        await random_delay(5000, 10000)
+\`\`\`
+
+## 出力要件
+- 完全に実行可能なPythonコード
+- async/await構文を使用
+- type hintsを含める
+- コメントで各ステップを説明
+- エラーハンドリングを含める
+- ${outputFormat}形式でデータを保存
+- ログ出力を含める（logging使用）
+
+## 出力形式
+Pythonコードのみを返してください。説明文やマークダウンは不要です。
+コードブロックで囲んでください。
+
+\`\`\`python
+# ここにコードを記述
+\`\`\`
+`;
+  }
+
+  /**
+   * AI応答からコードを抽出
+   * @param {string} text
+   * @param {string} language
+   * @returns {string}
+   */
+  extractCode(text, language = 'javascript') {
     // マークダウンコードブロックを抽出
-    const codeBlockRegex = /```(?:javascript|js)?\n([\s\S]*?)```/;
+    const langPattern = language === 'python' ? 'python|py' : 'javascript|js';
+    const codeBlockRegex = new RegExp(`\`\`\`(?:${langPattern})?\\n([\\s\\S]*?)\`\`\``, 'i');
     const match = text.match(codeBlockRegex);
 
     if (match && match[1]) {
