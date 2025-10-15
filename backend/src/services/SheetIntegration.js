@@ -18,6 +18,12 @@ class SheetIntegration {
    */
   async authenticate() {
     try {
+      // Google認証が設定されていない場合はスキップ
+      if (!process.env.GOOGLE_CREDENTIALS_PATH && !process.env.GOOGLE_API_KEY) {
+        console.warn('Google Sheets credentials not configured. Skipping authentication.');
+        return false;
+      }
+
       // サービスアカウントキーまたはOAuth2認証
       const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH;
 
@@ -88,7 +94,11 @@ class SheetIntegration {
    */
   async writeResult(spreadsheetId, rowNumber, result) {
     if (!this.sheets) {
-      await this.authenticate();
+      const authenticated = await this.authenticate();
+      if (!authenticated) {
+        console.warn('Skipping sheet write: Google Sheets not authenticated');
+        return false;
+      }
     }
 
     try {
@@ -137,7 +147,11 @@ class SheetIntegration {
    */
   async updateRowColor(spreadsheetId, rowNumber, color = 'green') {
     if (!this.sheets) {
-      await this.authenticate();
+      const authenticated = await this.authenticate();
+      if (!authenticated) {
+        console.warn('Skipping row color update: Google Sheets not authenticated');
+        return false;
+      }
     }
 
     const colors = {
