@@ -19,27 +19,41 @@ class SheetIntegration {
   async authenticate() {
     try {
       // Google認証が設定されていない場合はスキップ
-      if (!process.env.GOOGLE_CREDENTIALS_PATH && !process.env.GOOGLE_API_KEY) {
+      if (!process.env.GOOGLE_CREDENTIALS_JSON && !process.env.GOOGLE_CREDENTIALS_PATH && !process.env.GOOGLE_API_KEY) {
         console.warn('Google Sheets credentials not configured. Skipping authentication.');
         return false;
       }
 
-      // サービスアカウントキーまたはOAuth2認証
-      const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH;
+      let credentials = null;
 
-      if (credentialsPath) {
-        const credentials = JSON.parse(await fs.readFile(credentialsPath, 'utf8'));
+      // JSONから直接認証（Render.com用）
+      if (process.env.GOOGLE_CREDENTIALS_JSON) {
+        credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+      }
+      // ファイルパスから認証
+      else if (process.env.GOOGLE_CREDENTIALS_PATH) {
+        credentials = JSON.parse(await fs.readFile(process.env.GOOGLE_CREDENTIALS_PATH, 'utf8'));
+      }
+
+      if (credentials) {
         this.auth = new google.auth.GoogleAuth({
           credentials,
           scopes: ['https://www.googleapis.com/auth/spreadsheets']
         });
-      } else {
-        // APIキーのみの場合（読み取り専用）
-        this.auth = process.env.GOOGLE_API_KEY;
+        this.sheets = google.sheets({ version: 'v4', auth: this.auth });
+        console.log('Google Sheets authentication successful');
+        return true;
       }
 
-      this.sheets = google.sheets({ version: 'v4', auth: this.auth });
-      return true;
+      // APIキーのみの場合（読み取り専用）
+      if (process.env.GOOGLE_API_KEY) {
+        this.auth = process.env.GOOGLE_API_KEY;
+        this.sheets = google.sheets({ version: 'v4', auth: this.auth });
+        console.log('Google Sheets API key authentication successful');
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.warn('Google Sheets authentication failed:', error.message);
       return false;
